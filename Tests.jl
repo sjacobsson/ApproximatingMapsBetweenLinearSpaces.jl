@@ -7,7 +7,7 @@ using LinearAlgebra
 # Compiled in https://arxiv.org/pdf/1308.4008.pdf
 # Used in, for example, https://arxiv.org/pdf/2208.03380.pdf, https://arxiv.org/pdf/2211.11338.pdf
 
-function ackley(xs_::AbstractVector)::AbstractFloat#={{{=#
+function ackley(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 32.768 # rescale so that x \in [-1, 1]^d
 
@@ -22,27 +22,27 @@ function ackley(xs_::AbstractVector)::AbstractFloat#={{{=#
         )
 end#=}}}=#
 
-function alpine(xs_::AbstractVector)::AbstractFloat#={{{=#
+function alpine(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 10.0
 
     return sum([abs(x * sin(x) + 0.1 * x) for x in xs])
 end#=}}}=#
 
-function dixon(xs_::AbstractVector)::AbstractFloat#={{{=#
+function dixon(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 10.0
 
     return (xs[1] - 1)^2 + sum([i * (2 * xs[i]^2 - xs[i - 1])^2 for i in 2:d])
 end#=}}}=#
 
-function exponential(xs::AbstractVector)::AbstractFloat#={{{=#
+function exponential(xs::Vector{Float64})::Float64#={{{=#
     d = length(xs)
 
     return -exp(-(1 / 2.0) * sum([x^2 for x in xs]))
 end#=}}}=#
 
-function grienwank(xs_::AbstractVector)::AbstractFloat#={{{=#
+function grienwank(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 600.0
 
@@ -53,7 +53,7 @@ function grienwank(xs_::AbstractVector)::AbstractFloat#={{{=#
         )
 end#=}}}=#
 
-function michalewicz(xs_::AbstractVector)::AbstractFloat#={{{=#
+function michalewicz(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = (xs_ .+ 1) * pi / 2
 
@@ -62,7 +62,7 @@ function michalewicz(xs_::AbstractVector)::AbstractFloat#={{{=#
     return -sum([sin(xs[i]) * sin(i * xs[i]^2 / pi)^(2 * m) for i in 1:d])
 end#=}}}=#
 
-function piston(xs::AbstractVector)::AbstractFloat#={{{=#
+function piston(xs::Vector{Float64})::Float64#={{{=#
     d = length(xs)
     @assert(d == 7)
     M   = (60.0 - 30.0) * xs[1] / 2     + (60.0 + 30.0) / 2
@@ -79,14 +79,14 @@ function piston(xs::AbstractVector)::AbstractFloat#={{{=#
     return 2 * pi * sqrt(M / (k + S^2 * P0 * V0 * Ta / (T0 * V^2)))
 end#=}}}=#
 
-function qing(xs_::AbstractVector)::AbstractFloat#={{{=#
+function qing(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = (xs_ .+ 1.0) * 250.0
 
     return sum([(xs[i]^2 - i)^2 for i in 1:d])
 end#=}}}=#
 
-function rastrigin(xs_::AbstractVector)::AbstractFloat#={{{=#
+function rastrigin(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 5.12
 
@@ -95,14 +95,14 @@ function rastrigin(xs_::AbstractVector)::AbstractFloat#={{{=#
     return A * d + sum([xs[i]^2 - A * cos(2 * pi * xs[i]) for i in 1:d])
 end#=}}}=#
 
-function rosenbrock(xs_::AbstractVector)::AbstractFloat#={{{=#
+function rosenbrock(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 2.048
 
     return sum([(100 * (xs[i + 1] - xs[i]^2)^2 + (1.0 - xs[i])^2) for i in 1:(d - 1)])
 end#=}}}=#
 
-function schaffer(xs_::AbstractVector)::AbstractFloat#={{{=#
+function schaffer(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 100.0
 
@@ -111,7 +111,7 @@ function schaffer(xs_::AbstractVector)::AbstractFloat#={{{=#
         for i in 1:(d - 1)])
 end#=}}}=#
 
-function schwefel(xs_::AbstractVector)::AbstractFloat#={{{=#
+function schwefel(xs_::Vector{Float64})::Float64#={{{=#
     d = length(xs_)
     xs = xs_ * 500.0
 

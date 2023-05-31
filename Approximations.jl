@@ -1,12 +1,14 @@
 # Approximate functions between linear spaces
+#
+# For performance reasons, these methods are typed with concrete rather than abstract types
 
 # TODO:
 #   Look for an approximate Tucker decomposition as well.
+#   Option to use AAA instead of Chebyshev interpolation
 #   Finish writing the tests.
 #   Document the args
-#   Use AbstractFloat instead of Float64?
 
-include("../QOL.jl")
+include("QOL.jl")
 using ApproxFun
 using TensorToolbox
 using IterTools: (product)
@@ -14,16 +16,23 @@ using SplitApplyCombine: (combinedims)
 
 Chebfun = Fun{Chebyshev{ChebyshevInterval{Float64}, Float64}, Float64, Vector{Float64}}
 
-using PyCall
+using PyCall: (pyimport)
 teneva = pyimport("teneva")
 
 """
-    Approximate a TT decomposition of a tensor G without using the full tensor. G is hence represented as a map from m-tuples of integers between 1 and N to the reals.
+    function TTsvd_incomplete(
+        G::Function, # :: (1:n_1) x ... x (1:n_m) -> R
+        valence::Vector{Int64};
+        reqrank::Int64=10,
+        kwargs...
+        )::TTtensor
+
+Approximate a TT decomposition of a tensor G without using the full tensor. G is hence represented as a map from m-tuples of integers between 1 and N to the reals.
 """
 function TTsvd_incomplete(#={{{=#
     G::Function, # :: (1:n_1) x ... x (1:n_m) -> R
-    valence::Vector{Int};
-    reqrank::Int=10, # TODO: If I rewrite this, make reqrank a tuple of Ints
+    valence::Vector{Int64};
+    reqrank::Int64=10, # TODO: If I rewrite this, make reqrank a tuple of Ints
     kwargs...
     )::TTtensor
 
@@ -32,11 +41,21 @@ function TTsvd_incomplete(#={{{=#
     return TTtensor(teneva.svd_incomplete(Is, Gs, idx, idx_many, r=reqrank; kwargs...))
 end#=}}}=#
 
-""" Approximate a scalar-valued function using approximate TT decomposition and Chebyshev interpolation """
+"""
+    function approximate_scalar(
+        m::Int64,
+        g::Function; # :: [-1, 1]^m -> R
+        res::Int64=20, # nbr of interpolation points in each direction
+        complete_sampling::Bool=false,
+        kwargs...
+        )::Function
+
+Approximate a scalar-valued function using approximate TT decomposition and Chebyshev interpolation
+"""
 function approximate_scalar(#={{{=#
-    g::Function, # :: [-1, 1]^m -> R
-    m::Int;
-    res::Int=20, # nbr of interpolation points in each direction
+    m::Int64,
+    g::Function; # :: [-1, 1]^m -> R
+    res::Int64=20, # nbr of interpolation points in each direction
     complete_sampling::Bool=false,
     kwargs...
     )::Function
@@ -69,8 +88,8 @@ function approximate_scalar(#={{{=#
     end
 
     function g_approx(
-        x::AbstractVector
-        )::AbstractFloat
+        x::Vector{Float64}
+        )::Float64
         @assert(length(x) == m)
         
         # Evaluate chebfuns and contract
@@ -82,14 +101,29 @@ function approximate_scalar(#={{{=#
     return g_approx
 end#=}}}=#
 
-""" Approximate a vector-valued function using approximate TT decomposition and Chebyshev interpolation """
+"""
+    function approximate_vector(
+        m::Int64,
+        n::Int64,
+        g::Function; # :: [-1, 1]^m -> R^n
+        res::Int64=20, # nbr of interpolation points in each direction
+        complete_sampling::Bool=true,
+        kwargs...
+        )::Function
+
+Approximate a vector-valued function using approximate TT decomposition and Chebyshev interpolation
+"""
 function approximate_vector(#={{{=#
-    g::Function, # :: [-1, 1]^m -> R^n
-    m::Int;
-    res::Int=20, # nbr of interpolation points in each direction
-    complete_sampling::Bool=false,
+    m::Int64,
+    n::Int64,
+    g::Function; # :: [-1, 1]^m -> R^n
+    res::Int64=20, # nbr of interpolation points in each direction
+    complete_sampling::Bool=true,
     kwargs...
     )::Function
+
+    @assert(length(g(zeros(m))) == n)
+    valence = [n, repeat([res], m)...]
 
     # Evaluate g on Chebyshev grid
     # G^l_ijk = g^l(t_i, t_j, t_k)
@@ -103,7 +137,6 @@ function approximate_vector(#={{{=#
         G_decomposed = TTsvd(G; kwargs...)
     else
         G_(I::Vector{Int64})::Float64 = g([chebpts[i] for i in I[2:end]])[I[1]]
-        valence = [m, repeat([res], m)...]
         G_decomposed = TTsvd_incomplete(G_, valence; kwargs...)
     end
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
@@ -119,8 +152,8 @@ function approximate_vector(#={{{=#
     end
 
     function g_approx(
-        x::AbstractVector
-        )::AbstractVector
+        x::Vector{Float64}
+        )::Vector{Float64}
         @assert(length(x) == m)
         
         # Evaluate chebfuns and contract
@@ -128,6 +161,11 @@ function approximate_vector(#={{{=#
             [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
             ))
     end
+
+    # TODO: something like this?
+    # if verbose
+    #     println("decomposed valence ", valence, " tensor with TTrank ", TTrank(G_decomposed), ".")
+    # end
 
     return g_approx
 end#=}}}=#
