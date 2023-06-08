@@ -56,7 +56,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
     res::Int64=20, # nbr of interpolation points in each direction
-    complete_sampling::Bool=false,
+    complete_sampling::Bool=true,
     kwargs...
     )::Function
 
