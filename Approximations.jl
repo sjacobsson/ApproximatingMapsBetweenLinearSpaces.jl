@@ -45,18 +45,31 @@ end#=}}}=#
     function approximate_scalar(
         m::Int64,
         g::Function; # :: [-1, 1]^m -> R
+        decomposition_method=TTsvd,
         res::Int64=20, # nbr of interpolation points in each direction
-        complete_sampling::Bool=false,
         kwargs...
         )::Function
 
-Approximate a scalar-valued function using approximate TT decomposition and Chebyshev interpolation
+Approximate a scalar-valued function using approximate TT decomposition and Chebyshev interpolation.
+Available tensor decomposition methods are `TTsvd`, `TTsvd_incomplete`, and `hosvd` (Tucker decomposition).
+
 """
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
+    decomposition_method=TTsvd,
     res::Int64=20, # nbr of interpolation points in each direction
-    complete_sampling::Bool=true,
+    kwargs...
+    )::Function
+
+    return approximate_scalar(m, g, decomposition_method; res=res, kwargs...)
+end#=}}}=#
+
+function approximate_scalar(#={{{=#
+    m::Int64,
+    g::Function,
+    ::typeof(TTsvd); # TODO: Was there a nicer syntax for this? Like Type{TTsvd}?
+    res::Int64=20,
     kwargs...
     )::Function
 
@@ -64,17 +77,11 @@ function approximate_scalar(#={{{=#
     # G_ijk = g(t_i, t_j, t_k)
     # where t_i is the i:th chebyshev node, then decompose
     # G_ijk = C1^a_ib C2^b_jc C3^c_ka
-    local G_decomposed::TTtensor
     chebpts::Vector{Float64} = chebyshevpoints(res)
-    if complete_sampling
-        chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
-        G::Array{Float64, m} = g.(chebgrid)
-        G_decomposed = TTsvd(G; kwargs...)
-    else
-        G_(I::Vector{Int64})::Float64 = g([chebpts[i] for i in I])
-        valence = repeat([res], m)
-        G_decomposed = TTsvd_incomplete(G_, valence; kwargs...)
-    end
+    chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
+    G::Array{Float64, m} = g.(chebgrid)
+    G_decomposed::TTtensor = TTsvd(G; kwargs...)
+
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
     # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
@@ -91,10 +98,98 @@ function approximate_scalar(#={{{=#
         x::Vector{Float64}
         )::Float64
         @assert(length(x) == m)
-        
+   
         # Evaluate chebfuns and contract
         return only(full(TTtensor(
             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
+            )))
+    end
+
+    return g_approx
+end#=}}}=#
+
+function approximate_scalar(#={{{=#
+    m::Int64,
+    g::Function,
+    ::typeof(TTsvd_incomplete);
+    res::Int64=20,
+    kwargs...
+    )::Function
+
+    # Evaluate g on Chebyshev grid
+    # G_ijk = g(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G_ijk = C1^a_ib C2^b_jc C3^c_ka
+    chebpts::Vector{Float64} = chebyshevpoints(res)
+    G(I::Vector{Int64})::Float64 = g([chebpts[i] for i in I])
+    valence = repeat([res], m)
+    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
+
+    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+
+    # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
+    cs::Vector{Array{Chebfun, 3}} = Vector{Array{Chebfun, 3}}(undef, m)
+    for i in 1:m
+        cs[i] = mapslices(
+            pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # Interpolate
+            Cs[i];
+            dims=2
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Float64
+        @assert(length(x) == m)
+    
+        # Evaluate chebfuns and contract
+        return only(full(TTtensor(
+            [map(f -> f(t), c) for (c, t) in zip(cs, x)]
+            )))
+    end
+
+    return g_approx
+end#=}}}=#
+
+function approximate_scalar(#={{{=#
+    m::Int64,
+    g::Function,
+    ::typeof(hosvd); # TODO: Was there a nicer syntax for this? Like Type{TTsvd}?
+    res::Int64=20,
+    kwargs...
+    )::Function
+
+    # Evaluate g on Chebyshev grid
+    # G_ijk = g(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G_ijk = C^abc U1_ai U2_bj U3_ck
+    chebpts::Vector{Float64} = chebyshevpoints(res)
+    chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
+    G::Array{Float64, m} = g.(chebgrid)
+    G_decomposed::ttensor = hosvd(G; kwargs...)
+
+    C::Array{Float64, m} = G_decomposed.cten
+    Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
+
+    # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
+    us::Vector{Array{Chebfun, 2}} = Vector{Array{Chebfun, 2}}(undef, m)
+    for i in 1:m
+        us[i] = mapslices(
+            pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # Interpolate
+            Us[i];
+            dims=1
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Float64
+        @assert(length(x) == m)
+   
+        # Evaluate chebfuns and contract
+        return only(full(ttensor(
+            C,
+            [map(f -> f(t), u) for (u, t) in zip(us, x)]
             )))
     end
 
@@ -106,19 +201,32 @@ end#=}}}=#
         m::Int64,
         n::Int64,
         g::Function; # :: [-1, 1]^m -> R^n
+        decomposition_method=TTsvd,
         res::Int64=20, # nbr of interpolation points in each direction
-        complete_sampling::Bool=true,
         kwargs...
         )::Function
 
 Approximate a vector-valued function using approximate TT decomposition and Chebyshev interpolation
+Available tensor decomposition methods are `TTsvd`, `TTsvd_incomplete`, and `hosvd` (Tucker decomposition).
 """
 function approximate_vector(#={{{=#
     m::Int64,
     n::Int64,
     g::Function; # :: [-1, 1]^m -> R^n
+    decomposition_method=TTsvd,
     res::Int64=20, # nbr of interpolation points in each direction
-    complete_sampling::Bool=true,
+    kwargs...
+    )::Function
+
+    return approximate_vector(m, n, g, decomposition_method; res=res, kwargs...)
+end#=}}}=#
+
+function approximate_vector(#={{{=#
+    m::Int64,
+    n::Int64,
+    g::Function, # :: [-1, 1]^m -> R^n
+    ::typeof(TTsvd);
+    res::Int64=20, # nbr of interpolation points in each direction
     kwargs...
     )::Function
 
@@ -129,16 +237,10 @@ function approximate_vector(#={{{=#
     # G^l_ijk = g^l(t_i, t_j, t_k)
     # where t_i is the i:th chebyshev node, then decompose
     # G^l_ijk = C1^al_b C2^b_ic C3^c_jd C4^d_ka
-    local G_decomposed::TTtensor
     chebpts::Vector{Float64} = chebyshevpoints(res)
-    if complete_sampling
-        chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
-        G::Array{Float64, m + 1} = combinedims(g.(chebgrid))
-        G_decomposed = TTsvd(G; kwargs...)
-    else
-        G_(I::Vector{Int64})::Float64 = g([chebpts[i] for i in I[2:end]])[I[1]]
-        G_decomposed = TTsvd_incomplete(G_, valence; kwargs...)
-    end
+    chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
+    G::Array{Float64, m + 1} = combinedims(g.(chebgrid))
+    G_decomposed::TTtensor = TTsvd(G; kwargs...)
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
     # ghat^l(x, y, z) = C1^al_b c2^b_c(x) c3^c_d(y) c4^d_a(z)
@@ -162,10 +264,97 @@ function approximate_vector(#={{{=#
             ))
     end
 
-    # TODO: something like this?
-    # if verbose
-    #     println("decomposed valence ", valence, " tensor with TTrank ", TTrank(G_decomposed), ".")
-    # end
+    return g_approx
+end#=}}}=#
+
+function approximate_vector(#={{{=#
+    m::Int64,
+    n::Int64,
+    g::Function, # :: [-1, 1]^m -> R^n
+    ::typeof(TTsvd_incomplete);
+    res::Int64=20, # nbr of interpolation points in each direction
+    kwargs...
+    )::Function
+
+    @assert(length(g(zeros(m))) == n)
+    valence = [n, repeat([res], m)...]
+
+    # Evaluate g on Chebyshev grid
+    # G^l_ijk = g^l(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G^l_ijk = C1^al_b C2^b_ic C3^c_jd C4^d_ka
+    chebpts::Vector{Float64} = chebyshevpoints(res)
+    G(I::Vector{Int64})::Float64 = g([chebpts[i] for i in I[2:end]])[I[1]]
+    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
+    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+
+    # ghat^l(x, y, z) = C1^al_b c2^b_c(x) c3^c_d(y) c4^d_a(z)
+    cs::Vector{Array{Chebfun, 3}} = Vector{Array{Chebfun, 3}}(undef, m)
+    for i in 1:m
+        cs[i] = mapslices(
+            pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # Interpolate
+            Cs[i + 1];
+            dims=2
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Vector{Float64}
+        @assert(length(x) == m)
+        
+        # Evaluate chebfuns and contract
+        return full(TTtensor(
+            [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
+            ))
+    end
+
+    return g_approx
+end#=}}}=#
+
+function approximate_vector(#={{{=#
+    m::Int64,
+    n::Int64,
+    g::Function,
+    ::typeof(hosvd); # TODO: Was there a nicer syntax for this? Like Type{TTsvd}?
+    res::Int64=20,
+    kwargs...
+    )::Function
+
+    # Evaluate g on Chebyshev grid
+    # G^l_ijk = g(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G^l_ijk = C_d^abc U1_ia U2_jb U3_kc U4^l_d
+    chebpts::Vector{Float64} = chebyshevpoints(res)
+    chebgrid = [chebpts[collect(I)] for I in product(repeat([1:res], m)...)]
+    G::Array{Float64, m + 1} = combinedims(g.(chebgrid))
+    G_decomposed::ttensor = hosvd(G; kwargs...)
+
+    C::Array{Float64, m + 1} = G_decomposed.cten
+    Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
+
+    # ghat(x, y, z) = C_d^abc u1_a(x) u2_b(y) u3_c(z) U4^l_d
+    us::Vector{Array{Chebfun, 2}} = Vector{Array{Chebfun, 2}}(undef, m)
+    for i in 1:m
+        us[i] = mapslices(
+            pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # Interpolate
+            Us[i + 1];
+            dims=1
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Vector{Float64}
+        @assert(length(x) == m)
+   
+        
+        # Evaluate chebfuns and contract
+        return full(ttensor(
+            C,
+            [Us[1], [map(f -> f(t), u) for (u, t) in zip(us, x)]...]
+            ))[:]
+    end
 
     return g_approx
 end#=}}}=#

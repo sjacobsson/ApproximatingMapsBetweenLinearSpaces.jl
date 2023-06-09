@@ -1,18 +1,17 @@
 # Compute errors from approximating different functions and compare to the error
 # bound predicted by thm TODO.
-# TODO: Move some of these methods into Tests.jl?
 include("../Approximations.jl")
-using Plots
-using LinearAlgebra
-using Random
+using Plots, LinearAlgebra, Random, Combinatorics, Transducers
 
 Lambda(N) = (2 / pi) * log(N + 1) + 1
 
+# Smooth
 function inverse_quadratic(;#={{{=#
     m=4,
-    Ns=2:2:36,
+    Ns=4:4:40,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     function g(x::Vector{Float64})::Float64
@@ -31,7 +30,7 @@ function inverse_quadratic(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -53,11 +52,13 @@ function inverse_quadratic(;#={{{=#
     display(p)
 end#=}}}=#
 
+# Smooth
 function gaussian(;#={{{=#
     m=4,
-    Ns=2:2:30,
+    Ns=2:2:26,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
     function g(x::Vector{Float64})::Float64
         return exp(-sum([xi^2 for xi in x]))
@@ -76,7 +77,7 @@ function gaussian(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -98,13 +99,15 @@ function gaussian(;#={{{=#
     display(p)
 end#=}}}=#
 
+# Smooth
 function dominant_singular_value(;#={{{=#
     m=4,
-    n1 = 20,
-    n2 = 30,
+    n1=20,
+    n2=30,
     Ns=2:1:12,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     Random.seed!(420)
@@ -124,7 +127,7 @@ function dominant_singular_value(;#={{{=#
     for (i, N) = enumerate(Ns)
         if verbose; println(i, "/", length(Ns)); end
 
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -152,9 +155,6 @@ function dominant_singular_value(;#={{{=#
     display(p)
 end#=}}}=#
 
-# Optimization benchmark functions
-using Combinatorics, Transducers
-
 ### Example functions [-1, 1]^d -> R ###
 # See https://en.wikipedia.org/wiki/Test_functions_for_optimization,
 # and https://arxiv.org/pdf/1308.4008.pdf.
@@ -166,6 +166,7 @@ function ackley(;#={{{=#
     Ns=2:2:30,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     function g(xs_::Vector{Float64})::Float64
@@ -187,7 +188,7 @@ function ackley(;#={{{=#
     for (i, N) = enumerate(Ns)
         if verbose; println(i, "/", length(Ns)); end
 
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -216,9 +217,10 @@ end#=}}}=#
 # C^1 so converges linearly
 function alpine(;#={{{=#
     m=3,
-    Ns=10:10:200,
+    Ns=20:20:200,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     V1 = 672.614 # integral of abs( d^2/dx^2 abs(x * 10 * sin(x * 10) + 0.1 * x * 10)) from x=-1 to x=1
@@ -235,7 +237,7 @@ function alpine(;#={{{=#
     for (i, N) = enumerate(Ns)
         if verbose; println(i, "/", length(Ns)); end
 
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         bs[i] = 4 * V1 * (Lambda(N)^m - 1) / (pi * 1 * (N - 1)^1 * (Lambda(N) - 1))
         # TODO: calculate max betterly
@@ -267,6 +269,7 @@ function rastrigin(;#={{{=#
     Ns=10:10:90,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     V(nu) = 2 * 32.1699^(nu + 1)
@@ -289,7 +292,7 @@ function rastrigin(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -319,6 +322,7 @@ function dixon(;#={{{=#
     Ns=2:2:20,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     # V(nu) =
@@ -339,7 +343,7 @@ function dixon(;#={{{=#
         #     4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
         #     for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -369,6 +373,7 @@ function griewank(;#={{{=#
     Ns=100:50:800,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     V(nu) = (600.0)^(nu + 1)
@@ -393,7 +398,7 @@ function griewank(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -419,6 +424,60 @@ function griewank(;#={{{=#
 end#=}}}=#
 
 # Smooth
+function schaffer(;#={{{=#
+    m=3,
+    Ns=100:20:320,
+    verbose=false,
+    savefigure=false,
+    kwargs...
+    )
+
+    # V(nu) = TODO
+
+    function g(xs_)
+        d = length(xs_)
+        xs = xs_ * 100.0
+
+        return sum([
+            0.5 + (sin(sqrt(xs[i]^2 + xs[i + 1]^2))^2 - 0.5) / (1.0 + 0.001 * (xs[i] + xs[i + 1]^2))^2
+            for i in 1:(d - 1)])
+    end
+
+    es = [NaN for _ in Ns]
+    # bs = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        # bs[i] = minimum([
+        #     4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
+        #     for nu in 1:(N - 1)])
+    
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
+
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            abs((g - ghat)(2 * rand(m) .- 1.0))
+            for _ in 1:1000])
+        if verbose; println("error ", es[i]); end
+    end
+    
+    p = plot(;
+        label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        # xaxis=:log,
+        yaxis=:log,
+        ylims=(1e-16, 2 * maximum([es...])),
+        yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2)
+    if savefigure; savefig("schaffer.pdf"); end
+    display(p)
+end#=}}}=#
+
+# Smooth
 # Computing the bound for this one is expensive as well
 using TaylorSeries, Trapz
 function michalewicz(;#={{{=#
@@ -426,6 +485,7 @@ function michalewicz(;#={{{=#
     Ns=20:20:200,
     verbose=false,
     savefigure=false,
+    kwargs...
     )
 
     M = 10
@@ -458,7 +518,7 @@ function michalewicz(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
+        ghat = approximate_scalar(m, g; res=N, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -482,97 +542,54 @@ function michalewicz(;#={{{=#
     display(p)
 end#=}}}=#
 
-# Smooth
-# function schaffer(;#={{{=#
-#     m=3,
-#     Ns=100:20:320,
-#     verbose=false,
-#     )
-
-#     # V(nu) =
-
-#     function g(xs_)
-#         d = length(xs_)
-#         xs = xs_ * 100.0
-
-#         return sum([
-#             0.5 + (sin(sqrt(xs[i]^2 + xs[i + 1]^2))^2 - 0.5) / (1.0 + 0.001 * (xs[i] + xs[i + 1]^2))^2
-#             for i in 1:(d - 1)])
-#     end
-
-#     es = [NaN for _ in Ns]
-#     # bs = [NaN for _ in Ns]
-#     for (i, N) = enumerate(Ns)
-#         if verbose; println(i, "/", length(Ns)); end
-
-#         # bs[i] = minimum([
-#         #     4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
-#         #     for nu in 1:(N - 1)])
-    
-#         ghat = approximate_scalar(m, g; res=N, complete_sampling=true)
-
-#         # TODO: calculate max betterly
-#         es[i] = maximum([
-#             abs((g - ghat)(2 * rand(m) .- 1.0))
-#             for _ in 1:1000])
-#         if verbose; println("error ", es[i]); end
-#     end
-    
-#     plot(;
-#         label="error bound",
-#         xlabel="N",
-#         xticks=Ns,
-#         # xaxis=:log,
-#         yaxis=:log,
-#         ylims=(1e-16, 2 * maximum([es...])),
-#         yticks=([1e0, 1e-5, 1e-10, 1e-15]),
-#         )
-#     scatter!(Ns, es;
-#         label="measured error",
-#         color=2)
-#     # savefig(".pdf")
-# end#=}}}=#
-
-# TODO: test approximate_scalar(..., complete_sampling=true) against predicted error bounds
-
-# """ Testing that approximate_scalar is a good fit """
-# function test_approximate_scalar(#={{{=#
-#     ;verbose=false,
-#     kwargs...
-#     )
-
-#     # TODO: when m = 1, do a normal chebfun
-#     for m in 2:4
-#         if verbose
-#             println()
-#             println("m = ", m)
-#         end
-#         for g in gs
-
-#             ghat = approximate_scalar(m, g; kwargs...)
-    
-#             max_error = 0.0
-#             x_max = zeros(m)
-#             for _ in 1:10
-#                 x = rand(m)
-#                 g_x = g(x)
-#                 ghat_x = ghat(x)
-#                 error = abs(g_x - ghat_x)
-#                 if error > max_error
-#                     x_max = x
-#                     max_error = error
-#                 end
-#             end
-
-#             # if (error / abs(g_x) > 1e-10);
-#             #     throw("approximate_scalar1 not accurate enough");
-#             # end
-#             if verbose
-#                 println(rpad(g, 12, " "), " has relative error ", round(max_error / abs(g(x_max)); sigdigits=2))
-#             end
-#         end
-#     end
-# end#=}}}=#
-
 # TODO:  test_approximate_vector
+function smooth_vector_field(;#={{{=#
+    m=4,
+    n=4,
+    Ns=2:2:24,
+    verbose=false,
+    savefigure=false,
+    kwargs...
+    )
 
+
+    A = rand(m, n)
+    V(nu) = 2 * maximum(A * [i^(nu + 1) for i in 1:m])
+    function g(xs)
+    
+        return A * [cos(i * x) for (i, x) in enumerate(xs)]
+    end
+
+    es = [NaN for _ in Ns]
+    bs = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        bs[i] = minimum([
+            4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
+            for nu in 1:(N - 1)])
+    
+        ghat = approximate_vector(m, n, g; res=N, kwargs...)
+
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            maximum(abs.((g - ghat)(2 * rand(m) .- 1.0)))
+            for _ in 1:1000])
+        if verbose; println("error ", es[i]); end
+    end
+    
+    p = plot(Ns, bs;
+        label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        yaxis=:log,
+        ylims=(1e-16, 2 * maximum([es..., bs...])),
+        yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2)
+    if savefigure; savefig("rastrigin_gradient.pdf"); end
+    display(p)
+end#=}}}=#
+    
