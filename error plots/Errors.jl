@@ -31,7 +31,8 @@ function inverse_quadratic(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -78,7 +79,8 @@ function gaussian(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -121,7 +123,8 @@ function gaussian_modified(;#={{{=#
 
         bs[i] = 4 * V2 * (Lambda(N)^m - 1) / (pi * 2 * big(N - 2)^2 * (Lambda(N) - 1))
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -233,7 +236,8 @@ function dominant_singular_value(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
 
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
         # TODO: calculate max betterly
         es[i] = maximum([
             abs((g - ghat)(2 * rand(m) .- 1.0))
@@ -300,7 +304,8 @@ function ackley(;#={{{=#
     for (i, N) = enumerate(Ns)
         if verbose; println(i, "/", length(Ns)); end
 
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -404,7 +409,8 @@ function rastrigin(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -455,7 +461,8 @@ function dixon(;#={{{=#
         #     4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
         #     for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -510,7 +517,8 @@ function griewank(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -564,7 +572,8 @@ function schaffer(;#={{{=#
         #     4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
         #     for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -630,7 +639,8 @@ function michalewicz(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_scalar(m, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(m, g; sample_points=ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -681,7 +691,8 @@ function smooth_vector_field(;#={{{=#
             4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
             for nu in 1:(N - 1)])
     
-        ghat = approximate_vector(m, n, g; res=N, kwargs...)
+        ts = points(Chebyshev(), N)
+        ghat = approximate_vector(m, n, g; ts, kwargs...)
 
         # TODO: calculate max betterly
         es[i] = maximum([
@@ -704,4 +715,209 @@ function smooth_vector_field(;#={{{=#
     if savefigure; savefig("rastrigin_gradient.pdf"); end
     display(p)
 end#=}}}=#
+
+
+### AAA ###
+
+function inverse_quaaadratic(;#={{{=#
+    m=4,
+    Ns=4:4:40,
+    verbose=false,
+    savefigure=false,
+    kwargs...
+    )
+
+    function g(x::Vector{Float64})::Float64
+        return 1.0 / (1.0 + sum([xi^2 for xi in x]))
+    end
     
+    es = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(
+            m,
+            g;
+            sample_points=ts,
+            univariate_approximate=first ∘ pa(aaa, ts; pos=2),
+            kwargs...
+            )
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            abs((g - ghat)(2 * rand(m) .- 1.0))
+            for _ in 1:1000])
+        if verbose; println("error ", es[i]); end
+    end
+    
+    p = plot(;
+        # label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        yaxis=:log,
+        ylims=(1e-16, 2 * maximum([es...])),
+        yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2,
+        )
+    if savefigure; savefig("inverse_quadratic.pdf"); end
+    display(p)
+end#=}}}=#
+
+function gaaaussian(;#={{{=#
+    m=4,
+    Ns=2:2:26,
+    verbose=false,
+    savefigure=false,
+    kwargs...
+    )
+    function g(x::Vector{Float64})::Float64
+        return exp(-sum([xi^2 for xi in x]))
+    end
+    
+    es = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        ts = points(Chebyshev(), N)
+        ghat = approximate_scalar(
+            m,
+            g;
+            sample_points=ts,
+            univariate_approximate=first ∘ pa(aaa, ts; pos=2),
+            kwargs...
+            )
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            abs((g - ghat)(2 * rand(m) .- 1.0))
+            for _ in 1:1000])
+        if verbose; println("error ", es[i]); end
+    end
+    
+    p = plot(;
+        label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        yaxis=:log,
+        ylims=(1e-16, 2 * maximum([es...])),
+        yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2,
+        )
+    if savefigure; savefig("gaussian.pdf"); end
+    display(p)
+end#=}}}=#
+
+function gaaaussian_modified(;#={{{=#
+    m=4,
+    Ns=2:2:26,
+    verbose=false,
+    savefigure=false,
+    kwargs...
+    )
+    function g(x::Vector{Float64})::Float64
+        return exp(-sum([sign(xi) * xi^2 for xi in x]))
+    end
+    
+    es = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        ts = [points(Chebyshev(), N)..., (-1.0:(1.0 / N):1.0)...]
+        ghat = approximate_scalar(
+            m,
+            g;
+            sample_points=ts,
+            univariate_approximate=first ∘ pa(aaa, ts; pos=2),
+            kwargs...
+            ) # BODGE
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            abs((g - ghat)(2 * rand(m) .- 1.0))
+            for _ in 1:1000])
+        if verbose; println("error ", es[i]); end
+    end
+    
+    p = plot(;
+        label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        yaxis=:log,
+        # ylims=(1e-16, 2 * maximum([es..., bs...])),
+        # yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2,
+        )
+    if savefigure; savefig("gaussian_modified.pdf"); end
+    display(p)
+end#=}}}=#
+
+function dominaaant_singular_value(;#={{{=#
+    m=4,
+    n1=40,
+    n2=60,
+    Ns=2:1:12,
+    verbose=false,
+    savefigure=false,
+    figkwargs=(windowsize=(240, 160), guidefontsize=5, xtickfontsize=5, ytickfontsize=5, legendfontsize=5),
+    kwargs...
+    )
+
+    Random.seed!(420)
+    a = LinearAlgebra.normalize(rand(n1))
+    b = LinearAlgebra.normalize(rand(n2))
+    As = [LinearAlgebra.normalize(rand(n1, n2)) for _ in 1:m]
+    function g(x) # : [-1, 1]^m -> Segre((m1, m2))
+        U, S, Vt = svd(
+            sum([xi * A for (xi, A) in zip(x, As)]) + 
+            a * b'
+            )
+        return S[1]
+    end
+
+    global ghat
+    es = [NaN for _ in Ns]
+    bs = [NaN for _ in Ns]
+    for (i, N) = enumerate(Ns)
+        if verbose; println(i, "/", length(Ns)); end
+
+        ts = [points(Chebyshev(), N)..., (-1.0:(1 / N):1.0)...]
+        ghat = approximate_scalar(
+            m,
+            g;
+            univariate_approximate=first ∘ pa(aaa, ts; pos=2),
+            sample_points=ts,
+            kwargs...
+            )
+        # TODO: calculate max betterly
+        es[i] = maximum([
+            abs((g - ghat)(2 * rand(m) .- 1.0))
+            for _ in 1:1000])
+
+        if verbose
+            println("error ", es[i])
+        end
+    end
+
+    p = plot(;
+        # label="error bound",
+        xlabel="N",
+        xticks=Ns,
+        yaxis=:log,
+        ylims=(1e-16, 2 * maximum([es..., bs...])),
+        yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        figkwargs...
+        )
+    scatter!(Ns, es;
+        label="measured error",
+        color=2
+        )
+    if savefigure; savefig("dominant_singular_value.pdf"); end
+    display(p)
+end#=}}}=#
