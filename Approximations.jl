@@ -57,18 +57,19 @@ end#=}}}=#
         m::Int64,
         g::Function; # :: [-1, 1]^m -> R
         decomposition_method=TTsvd,
-        res::Int64=20, # nbr of interpolation points in each direction
+        univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
         kwargs...
         )::Function
 
-Approximate a scalar-valued function using approximate TT decomposition and Chebyshev interpolation.
-Available tensor decomposition methods are `TTsvd`, `TTsvd_incomplete`, and `hosvd` (Tucker decomposition).
+Approximate a multivariate scalar-valued function using a tensorized univariate_approximate.
+Available tensor decomposition methods are `hosvd` (Tucker decomposition), `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
 
 """
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
     decomposition_method=TTsvd,
+    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
     kwargs...
     )::Function
 
@@ -76,8 +77,54 @@ function approximate_scalar(#={{{=#
         m,
         g,
         decomposition_method;
+        univariate_approximate=univariate_approximate,
         kwargs...
         )
+end#=}}}=#
+
+function approximate_scalar(#={{{=#
+    m::Int64,
+    g::Function,
+    ::typeof(hosvd);
+    sample_points=points(Chebyshev(), 20),
+    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    kwargs...
+    )::Function
+
+    # Evaluate g on Chebyshev grid
+    # G_ijk = g(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G_ijk = C^abc U1_ai U2_bj U3_ck
+    grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
+    G::Array{Float64, m} = g.(grid)
+    G_decomposed::ttensor = hosvd(G; kwargs...)
+
+    C::Array{Float64, m} = G_decomposed.cten
+    Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
+
+    # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
+    us::Vector{Array{Chebfun, 2}} = Vector{Array{Chebfun, 2}}(undef, m)
+    for i in 1:m
+        us[i] = mapslices(
+            univariate_approximate,
+            Us[i];
+            dims=1
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Float64
+        @assert(length(x) == m)
+   
+        # Evaluate chebfuns and contract
+        return only(full(ttensor(
+            C,
+            [map(f -> f(t), u) for (u, t) in zip(us, x)]
+            )))
+    end
+
+    return g_approx
 end#=}}}=#
 
 function approximate_scalar(#={{{=#
@@ -169,51 +216,6 @@ end#=}}}=#
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
-    ::typeof(hosvd);
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
-    kwargs...
-    )::Function
-
-    # Evaluate g on Chebyshev grid
-    # G_ijk = g(t_i, t_j, t_k)
-    # where t_i is the i:th chebyshev node, then decompose
-    # G_ijk = C^abc U1_ai U2_bj U3_ck
-    grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
-    G::Array{Float64, m} = g.(chebgrid)
-    G_decomposed::ttensor = hosvd(G; kwargs...)
-
-    C::Array{Float64, m} = G_decomposed.cten
-    Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
-
-    # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
-    us::Vector{Array{Chebfun, 2}} = Vector{Array{Chebfun, 2}}(undef, m)
-    for i in 1:m
-        us[i] = mapslices(
-            univariate_approximate,
-            Us[i];
-            dims=1
-            )
-    end
-
-    function g_approx(
-        x::Vector{Float64}
-        )::Float64
-        @assert(length(x) == m)
-   
-        # Evaluate chebfuns and contract
-        return only(full(ttensor(
-            C,
-            [map(f -> f(t), u) for (u, t) in zip(us, x)]
-            )))
-    end
-
-    return g_approx
-end#=}}}=#
-
-function approximate_scalar(#={{{=#
-    m::Int64,
-    g::Function,
     ::typeof(TTsvd_cross);
     sample_points=points(Chebyshev(), 20),
     univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
@@ -249,6 +251,52 @@ function approximate_scalar(#={{{=#
         # Evaluate chebfuns and contract
         return only(full(TTtensor(
             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
+            )))
+    end
+
+    return g_approx
+end#=}}}=#
+
+function approximate_scalar(#={{{=#
+    m::Int64,
+    g::Function,
+    ::typeof(cp_als);
+    sample_points=points(Chebyshev(), 20),
+    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    kwargs...
+    )::Function
+
+    # Evaluate g on Chebyshev grid
+    # G_ijk = g(t_i, t_j, t_k)
+    # where t_i is the i:th chebyshev node, then decompose
+    # G_ijk = C^abc U1_ai U2_bj U3_ck
+    resolution = length(sample_points)
+    grid = [sample_points[collect(I)] for I in product(repeat([1:resolution], m)...)]
+    G::Array{Float64, m} = g.(grid)
+    G_decomposed::ktensor = cp_als(G, 2 * resolution; tol=1e-10, kwargs...) # TODO: How to choose number of terms??
+
+    lambdas::Vector{Float64} = G_decomposed.lambda
+    Vs::Vector{Array{Float64, 2}} = G_decomposed.fmat
+
+    # ghat(x, y, z) = c1^a_b(x) c2^b_c(y) c3^c_a(z)
+    vs::Vector{Array{Chebfun, 2}} = Vector{Array{Chebfun, 2}}(undef, m)
+    for i in 1:m
+        vs[i] = mapslices(
+            univariate_approximate,
+            Vs[i];
+            dims=1
+            )
+    end
+
+    function g_approx(
+        x::Vector{Float64}
+        )::Float64
+        @assert(length(x) == m)
+   
+        # Evaluate chebfuns and contract
+        return only(full(ktensor(
+            lambdas,
+            [map(f -> f(t), v) for (v, t) in zip(vs, x)]
             )))
     end
 
