@@ -3,8 +3,8 @@
 # For performance reasons, these methods are typed with concrete rather than abstract types
 
 # TODO:
-#   Look for an approximate Tucker decomposition as well.
-#   Option to use AAA instead of Chebyshev interpolation
+#   Look for an approximate Tucker decomposition.
+#   Option to use BasisFunction
 #   Finish writing the tests.
 #   Document the args
 
@@ -15,7 +15,30 @@ using TensorToolbox
 using IterTools: (product)
 using SplitApplyCombine: (combinedims)
 
-Chebfun = Fun{Chebyshev{ChebyshevInterval{Float64}, Float64}, Float64, Vector{Float64}}
+# Chebfun = Fun{Chebyshev{ChebyshevInterval{Float64}, Float64}, Float64, Vector{Float64}}
+
+struct UnivariateApproximationScheme
+    sample_points::Vector{Float64}
+    approximate::Function # :: Vector{Float} -> (Float -> Float)
+end
+
+function chebfun(nbr_nodes::Int64)
+    return UnivariateApproximationScheme(
+        points(Chebyshev(), nbr_nodes),
+        pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev())
+        )
+end
+
+function aaa_wrapper(nbr_nodes::Int64)
+    n1 = Int(round(nbr_nodes / 2))
+    n2 = nbr_nodes - n1
+    nodes = [collect(-1.0:n1:1.0)..., points(Chebyshev(), n2)...]
+
+    return UnivariateApproximationScheme(
+        nodes,
+        first ∘ pa(aaa, nodes; pos=2)
+        )
+end
 
 using PyCall: (pyimport)
 teneva = pyimport("teneva")
@@ -62,14 +85,14 @@ end#=}}}=#
         )::Function
 
 Approximate a multivariate scalar-valued function using a tensorized univariate_approximate.
-Available tensor decomposition methods are `hosvd` (Tucker decomposition), `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
+Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
 
 """
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
     decomposition_method=TTsvd,
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
 
@@ -77,7 +100,7 @@ function approximate_scalar(#={{{=#
         m,
         g,
         decomposition_method;
-        univariate_approximate=univariate_approximate,
+        univariate_scheme=univariate_scheme,
         kwargs...
         )
 end#=}}}=#
@@ -86,10 +109,12 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(hosvd);
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
+
+    sample_points = univariate_scheme.sample_points
+    univariate_approximate = univariate_scheme.approximate
 
     # Evaluate g on Chebyshev grid
     # G_ijk = g(t_i, t_j, t_k)
@@ -131,10 +156,12 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(TTsvd); # TODO: Was there a nicer syntax for this? Like Type{TTsvd}?
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
+
+    sample_points = univariate_scheme.sample_points
+    univariate_approximate = univariate_scheme.approximate
 
     # Evaluate g on Chebyshev grid
     # G_ijk = g(t_i, t_j, t_k)
@@ -174,10 +201,12 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(TTsvd_incomplete);
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
+
+    sample_points = univariate_scheme.sample_points
+    univariate_approximate = univariate_scheme.approximate
 
     # Evaluate g on Chebyshev grid
     # G_ijk = g(t_i, t_j, t_k)
@@ -217,10 +246,12 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(TTsvd_cross);
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
+
+    sample_points = univariate_scheme.sample_points
+    univariate_approximate = univariate_scheme.approximate
 
     # Evaluate g on Chebyshev grid
     # G_ijk = g(t_i, t_j, t_k)
@@ -261,10 +292,12 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(cp_als);
-    sample_points=points(Chebyshev(), 20),
-    univariate_approximate=pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev()), # :: R^N -> (R -> R)
+    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
     kwargs...
     )::Function
+
+    sample_points = univariate_scheme.sample_points
+    univariate_approximate = univariate_scheme.approximate
 
     # Evaluate g on Chebyshev grid
     # G_ijk = g(t_i, t_j, t_k)
