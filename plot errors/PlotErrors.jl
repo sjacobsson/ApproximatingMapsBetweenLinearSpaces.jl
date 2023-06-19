@@ -6,6 +6,8 @@ using LinearAlgebra, Random, Combinatorics, Transducers, Plots, CSV
 using DataFrames: DataFrame
 using TaylorSeries, Trapz # For michalewicz
 
+# TODO: How to save metadata like m and decomposition_method?
+
 Lambda(N) = (2 / pi) * log(N + 1) + 1
 
 function plot_errors(#={{{=#
