@@ -16,8 +16,7 @@ function plot_errors(#={{{=#
     m::Int64,
     Ns;
     verbose=false,
-    save_plot=false,
-    save_data=false,
+    save=false,
     get_univariate_scheme=chebfun, # Int -> UnivariateApproximationScheme
     kwargs...
     )
@@ -47,19 +46,26 @@ function plot_errors(#={{{=#
         yaxis=:log,
         ylims=(1e-16, 2 * maximum([es..., bs...])),
         yticks=([1e0, 1e-5, 1e-10, 1e-15]),
+        legend=:topright,
         )
     scatter!(Ns, es;
         label="measured error")
-    if save_plot; savefig(string(g, ".pdf")); end
-    if save_data; CSV.write(string(g, ".csv"), DataFrame([:Ns => Ns, :es => es, :bs => bs])); end
+    if save
+        savefig(string(g, ".pdf"))
+        CSV.write(string(g, ".csv"), DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+    end
     display(p)
 end#=}}}=#
 
 # Smooth
-# TODO: Write down some relevant keywords like verbose, save_plot, save_data, etc...
+# TODO: Pass the relevant keywords explicitly like verbose, save, etc?
+# TODO: What are are all the relevant keywords?
+"
+    Approximates g(x) = 1 / (1 + x1^2 + ... + xm^2).
+"
 function inverse_quadratic(;#={{{=#
     m=4,
-    Ns=4:4:40,
+    Ns=4:4:44,
     kwargs...
     )
 
@@ -72,6 +78,7 @@ function inverse_quadratic(;#={{{=#
     b(N) = minimum([
         4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
         for nu in 1:(N - 1)])
+    # TODO: How can this grow for small N??
     
     plot_errors(
         inverse_quadratic,
@@ -82,60 +89,11 @@ function inverse_quadratic(;#={{{=#
         )
 end#=}}}=#
 
-# Smooth
-function gaussian(;#={{{=#
-    m=4,
-    Ns=collect(2:2:26),
-    kwargs...
-    )
-
-    function gaussian(x::Vector{Float64})::Float64
-        return exp(-sum([xi^2 for xi in x]))
-    end
-    
-    # Error bound for tensorized Chebyshev interpolation.
-    V(nu) = 2 * sum([
-        factorial(big(nu)) * big(2)^(nu - 2 * j) * exp(m) / (factorial(big(j)) * factorial(big(nu - 2 * j)))
-        for j in 0:Int(floor(nu / 2))])
-    b(N) = minimum([
-        4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
-        for nu in 1:(N - 1)])
-    
-    plot_errors(
-        gaussian,
-        b,
-        m,
-        Ns;
-        kwargs...
-        )
-end#=}}}=#
-
-# C^1
-function gaussian_modified(;#={{{=#
-    m=4,
-    Ns=2:2:26,
-    kwargs...
-    )
-
-    function gaussian_modified(x::Vector{Float64})::Float64
-        return exp(-sum([sign(xi) * xi^2 for xi in x]))
-    end
-    
-    # Error bound for tensorized Chebyshev interpolation.
-    V2 = 4 * exp(m)
-    b(N) = 4 * V2 * (Lambda(N)^m - 1) / (pi * 2 * big(N - 2)^2 * (Lambda(N) - 1))
-    
-    plot_errors(
-        gaussian_modified,
-        b,
-        m,
-        Ns;
-        kwargs...
-        )
-end#=}}}=#
-
-# Smooth
-# Use tol=1e-15 to unlock full precision
+"
+    Approximates
+        g(x) = largest singular value of (A0 + x1 * A1 + ... + xm * Am),
+    where the A's are randomized n1 x n2 matrices chosen so that g is smooth.
+"
 function dominant_singular_value(;#={{{=#
     m=4,
     n1=40,
@@ -217,6 +175,58 @@ function dominant_singular_value(;#={{{=#
     
     plot_errors(
         dominant_singular_value,
+        b,
+        m,
+        Ns;
+        kwargs...
+        )
+end#=}}}=#
+
+# Smooth
+function gaussian(;#={{{=#
+    m=4,
+    Ns=collect(2:2:26),
+    kwargs...
+    )
+
+    function gaussian(x::Vector{Float64})::Float64
+        return exp(-sum([xi^2 for xi in x]))
+    end
+    
+    # Error bound for tensorized Chebyshev interpolation.
+    V(nu) = 2 * sum([
+        factorial(big(nu)) * big(2)^(nu - 2 * j) * exp(m) / (factorial(big(j)) * factorial(big(nu - 2 * j)))
+        for j in 0:Int(floor(nu / 2))])
+    b(N) = minimum([
+        4 * V(nu) * (Lambda(N)^m - 1) / (pi * nu * big(N - nu)^nu * (Lambda(N) - 1))
+        for nu in 1:(N - 1)])
+    
+    plot_errors(
+        gaussian,
+        b,
+        m,
+        Ns;
+        kwargs...
+        )
+end#=}}}=#
+
+# C^1
+function gaussian_modified(;#={{{=#
+    m=4,
+    Ns=2:2:26,
+    kwargs...
+    )
+
+    function gaussian_modified(x::Vector{Float64})::Float64
+        return exp(-sum([sign(xi) * xi^2 for xi in x]))
+    end
+    
+    # Error bound for tensorized Chebyshev interpolation.
+    V2 = 4 * exp(m)
+    b(N) = 4 * V2 * (Lambda(N)^m - 1) / (pi * 2 * big(N - 2)^2 * (Lambda(N) - 1))
+    
+    plot_errors(
+        gaussian_modified,
         b,
         m,
         Ns;
@@ -392,29 +402,6 @@ end#=}}}=#
 
 # Schwarz's theorem counterexample
 # TODO: Error bounds
-function schwarz_counterexample(;#={{{=#
-    m=2,
-    Ns=2:2:24,
-    verbose=false,
-    savefigure=false,
-    kwargs...
-    )
-    @assert(m == 2)
-
-    # V(nu) = 2 * maximum(A * [i^(nu + 1) for i in 1:m])
-    function schwarz_counterexample(xs)
-        x = xs[1]
-        y = xs[2]
-        return y^3 / (x^2 + y^2)
-    end
-
-    plot_errors(
-        schwarz_counterexample,
-        x -> NaN,
-        m,
-        Ns;
-        kwargs...
-        )
-end#=}}}=#
 
 # TODO: test_approximate_vector
+
