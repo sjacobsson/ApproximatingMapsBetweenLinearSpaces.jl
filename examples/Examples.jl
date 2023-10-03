@@ -1,10 +1,11 @@
 # Compute errors from approximating different functions and compare to the error
 # bound predicted by thm TODO.
-include("../Approximations.jl")
-include("../QOL.jl")
+# TODO: refactor to look more like ManiFactor.jl?
+using ApproximatingMapsBetweenLinearSpaces
 using LinearAlgebra, Random, Combinatorics, Transducers, Plots, CSV
 using DataFrames: DataFrame
 using TaylorSeries, Trapz # For michalewicz
+include("../QOL.jl")
 
 # TODO: How to save metadata like m and decomposition_method?
 
@@ -60,9 +61,9 @@ end#=}}}=#
 # Smooth
 # TODO: Pass the relevant keywords explicitly like verbose, save, etc?
 # TODO: What are are all the relevant keywords?
-"
-    Approximates g(x) = 1 / (1 + x1^2 + ... + xm^2).
-"
+"""
+Approximates g(x) = 1 / (1 + x1^2 + ... + xm^2).
+"""
 function inverse_quadratic(;#={{{=#
     m=4,
     Ns=4:4:44,
@@ -89,11 +90,11 @@ function inverse_quadratic(;#={{{=#
         )
 end#=}}}=#
 
-"
-    Approximates
-        g(x) = largest singular value of (A0 + x1 * A1 + ... + xm * Am),
-    where the A's are randomized n1 x n2 matrices chosen so that g is smooth.
-"
+"""
+Approximates
+    g(x) = largest singular value of (A0 + x1 * A1 + ... + xm * Am),
+where the A's are randomized n1 x n2 matrices chosen so that g is smooth.
+"""
 function dominant_singular_value(;#={{{=#
     m=4,
     n1=40,
@@ -404,4 +405,3 @@ end#=}}}=#
 # TODO: Error bounds
 
 # TODO: test_approximate_vector
-

@@ -15,6 +15,11 @@ using SplitApplyCombine: combinedims
 include("QOL.jl")
 include("TenevaWrappers.jl")
 
+export UnivariateApproximationScheme
+export chebfun
+export approximate_scalar
+export approximate_vector
+
 struct UnivariateApproximationScheme
     sample_points::Vector{Float64}
     approximate::Function # :: Vector{Float} -> (Float -> Float)
