@@ -1,11 +1,18 @@
-# approximating multivariate vector-valued functions
+# Approximating maps between linear spaces
 
-`Approximations.jl` implements some approximation schemes.
+Approximate functions of type
+$$\reals^m \to \reals^n.$$
 
-`Tests.jl` tests that those approximation schemes satisfies the error bounds that I derived.
+This package exists mostly so that I can use it in `ManiFactor.jl`.
 
 
+## Example: Dominant singular value
 
-## TODO
+Approximate
+$$\mathrm{dominant~singular~value}(8 A_0 + x_1 A_1 + \dots + x_4 A_4),$$
+where $A_0$, $\dots$, $A_4$ are randomly chosen $40 \times 60$ matrices such that $A_0$ is rank 1.
+This figure illustrates the approximation error for different $N$ (nbr of sample points along each $x_i$):
 
-Implement the fast tensor decomposition in Julia.
+[Plot](examples/dominant_singular_value.pdf)
+
+TODO: cite the article for the error bound.
