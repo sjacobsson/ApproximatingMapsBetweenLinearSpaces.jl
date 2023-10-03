@@ -1,76 +1,43 @@
 # Approximate functions between linear spaces
-#
-# For performance reasons, these methods are typed with concrete rather than abstract types
+module ApproximatingMapsBetweenLinearSpaces
 
 # TODO:
-#   Look for an approximate Tucker decomposition.
 #   Option to use BasisFunction
 #   Finish writing the tests.
 #   Document the args
-#   Consistent keywords for tensor deomposition tolerance
+#   Consistent keywords for tensor decomposition tolerance
 
-include("QOL.jl")
 using ApproxFun
-using AAA # Bodge
 using TensorToolbox
 using IterTools: product
 using Flatten
 using SplitApplyCombine: combinedims
+include("QOL.jl")
+include("TenevaWrappers.jl")
 
 struct UnivariateApproximationScheme
     sample_points::Vector{Float64}
     approximate::Function # :: Vector{Float} -> (Float -> Float)
 end
 
-function chebfun(nbr_nodes::Int64)#={{{=#
+function chebfun(nbr_nodes::Int64)::UnivariateApproximationScheme#={{{=#
     return UnivariateApproximationScheme(
         points(Chebyshev(), nbr_nodes),
         pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev())
         )
 end#=}}}=#
 
-function aaa_wrapper(nbr_nodes::Int64)#={{{=#
-    n1 = Int(round(nbr_nodes / 2))
-    n2 = nbr_nodes - n1
-    nodes = [collect(-1.0:n1:1.0)..., points(Chebyshev(), n2)...]
-
-    return UnivariateApproximationScheme(
-        nodes,
-        first ∘ pa(aaa, nodes; pos=2)
-        )
-end#=}}}=#
-
-using PyCall: (pyimport)
-teneva = pyimport("teneva")
-
 """
-    Approximate a TT decomposition of a tensor G without using the full tensor. G is hence represented as a map from m-tuples of integers between 1 and N to the reals.
-"""
-function TTsvd_incomplete(#={{{=#
-    G::Function, # :: (1:n_1) x ... x (1:n_m) -> R
-    valence::Vector{Int64};
-    reqrank::Int64=10, # TODO: If I rewrite this, make reqrank a tuple of Ints
-    kwargs...
-    )::TTtensor
+    function approximate_scalar(
+        m::Int64,
+        g::Function; # :: [-1, 1]^m -> R
+        decomposition_method=hosvd,
+        univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+        kwargs...
+        )::Function
 
-    Is, idx, idx_many = teneva.sample_tt(valence, r=reqrank)
-    Gs = [G(I .+ 1) for I in eachrow(Is)]
-    return TTtensor(teneva.svd_incomplete(Is, Gs, idx, idx_many, r=reqrank; kwargs...))
-end#=}}}=#
-
-function TTsvd_cross(#={{{=#
-    G::Function, # :: (1:n_1) x ... x (1:n_m) -> R
-    valence::Vector{Int64};
-    reqrank::Int64=10,
-    kwargs...
-    )::TTtensor
-
-    return TTtensor(teneva.cross( G, teneva.rand(valence, reqrank), e=1e-10, kwargs...))
-end#=}}}=#
-
-"""
-    Approximate a multivariate scalar-valued function using a tensorized `univariate_approximate`.
-    Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
+Approximate a multivariate scalar-valued function using a tensorized `univariate_approximate`.
+Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
 """
 function approximate_scalar(#={{{=#
     m::Int64,
@@ -293,8 +260,17 @@ function approximate_scalar(#={{{=#
 end#=}}}=#
 
 """
-    Approximate a multivariate vector-valued function using a tensorized `univariate_approximate`.
-    Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
+    function approximate_vector(
+        m::Int64,
+        n::Int64,
+        g::Function; # :: [-1, 1]^m -> R^n
+        decomposition_method=hosvd,
+        univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+        kwargs...
+        )::Function
+
+Approximate a multivariate vector-valued function using a tensorized `univariate_approximate`.
+Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
 """
 function approximate_vector(#={{{=#
     m::Int64,
@@ -523,3 +499,5 @@ function approximate_vector(#={{{=#
 
     return g_approx
 end#=}}}=#
+
+end
