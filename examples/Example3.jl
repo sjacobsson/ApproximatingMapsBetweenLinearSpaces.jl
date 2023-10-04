@@ -45,8 +45,8 @@ p = plot(;
 plot!(p, Ns, bs; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
-# To save figure and data to file:
-using CSV
-using DataFrames: DataFrame
-savefig("Example3.png")
-CSV.write("Example3.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# # To save figure and data to file:
+# using CSV
+# using DataFrames: DataFrame
+# savefig("Example3.png")
+# CSV.write("Example3.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))

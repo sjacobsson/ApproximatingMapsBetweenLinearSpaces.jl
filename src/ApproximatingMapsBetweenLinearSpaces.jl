@@ -3,8 +3,7 @@ module ApproximatingMapsBetweenLinearSpaces
 
 # TODO:
 #   Option to use BasisFunction
-#   Finish writing the tests.
-#   Document the args
+#   Write tests.
 #   Consistent keywords for tensor decomposition tolerance
 
 using ApproxFun
@@ -17,10 +16,6 @@ export UnivariateApproximationScheme
 export chebfun
 export approximate_scalar
 export approximate_vector
-
-export TTsvd_incomplete
-export TTsvd_cross
-include("TenevaWrappers.jl")
 
 """ Partial application """
 function pa(f, a...; pos=1)#={{{=#
