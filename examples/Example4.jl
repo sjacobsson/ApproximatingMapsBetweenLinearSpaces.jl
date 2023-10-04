@@ -8,9 +8,9 @@ function g(x)
     return exp(-sum([sign(xi) * xi^2 for xi in x]))
 end
 
-V2 = 4 * exp(m) # Bound for |(d/dxi)^1 g(x)|
+V2_ = 4 * exp(m) # Bound for |(d/dxi)^1 g(x)|
 Lambda(N) = (2 / pi) * log(N + 1) + 1 # Chebyshev interpolation operator norm
-b(N) = 4 * V2 * (Lambda(N)^m - 1) / (pi * 2 * big(N - 2)^2 * (Lambda(N) - 1))
+b(N) = 4 * V2_ * (Lambda(N)^m - 1) / (pi * 2 * big(N - 2)^2 * (Lambda(N) - 1))
 
 # Loop over nbr of interpolation points
 es = [NaN for _ in Ns]
@@ -31,7 +31,6 @@ for (i, N) = enumerate(Ns)
 end
 
 p = plot(;
-    title="g(x) = exp(-sign(x1) x1^2 - sign(x2) x2^2 - sign(x3) x3^2 - sign(x4) x4^2)",
     xlabel="N",
     xticks=Ns,
     yaxis=:log,

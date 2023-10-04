@@ -133,7 +133,6 @@ for (i, N) = enumerate(Ns)
 end
 
 p = plot(;
-    title="g(x) = dominant singular value(8 A0 + x1 A1 + x2 A2 + x3 A3 + x4 A4)",
     xlabel="N",
     xticks=Ns,
     yaxis=:log,
@@ -144,8 +143,8 @@ p = plot(;
 plot!(p, Ns, bs; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
-# # To save figure and data to file:
-# using CSV
-# using DataFrames: DataFrame
-# savefig("Example2.png")
-# CSV.write("Example2.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# To save figure and data to file:
+using CSV
+using DataFrames: DataFrame
+savefig("Example2.png")
+CSV.write("Example2.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))

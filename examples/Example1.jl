@@ -33,7 +33,6 @@ for (i, N) = enumerate(Ns)
 end
 
 p = plot(;
-    title="g(x) = 1 / (1 + x1^2 + x2^2 + x3^2 + x4^2)",
     xlabel="N",
     xticks=Ns,
     yaxis=:log,
@@ -44,8 +43,8 @@ p = plot(;
 plot!(p, Ns, bs; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
-# # To save figure and data to file:
-# using CSV
-# using DataFrames: DataFrame
-# savefig("Example1.png")
-# CSV.write("Example1.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# To save figure and data to file:
+using CSV
+using DataFrames: DataFrame
+savefig("Example1.png")
+CSV.write("Example1.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))

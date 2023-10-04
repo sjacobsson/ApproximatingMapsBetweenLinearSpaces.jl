@@ -4,7 +4,7 @@ using Plots; pyplot()
 m=4
 Ns=10:10:80
 
-# rastrigin
+# Rastrigin
 function g(x_)#={{{=#
     d = length(x_)
     x = x_ * 5.12
@@ -39,7 +39,6 @@ for (i, N) = enumerate(Ns)
 end
 
 p = plot(;
-    title="Rastrigrin function",
     xlabel="N",
     xticks=Ns,
     yaxis=:log,
@@ -50,8 +49,8 @@ p = plot(;
 plot!(p, Ns, bs; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
-# # To save figure and data to file:
-# using CSV
-# using DataFrames: DataFrame
-# savefig("Example5.png")
-# CSV.write("Example5.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# To save figure and data to file:
+using CSV
+using DataFrames: DataFrame
+savefig("Example5.png")
+CSV.write("Example5.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
