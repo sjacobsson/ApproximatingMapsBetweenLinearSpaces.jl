@@ -41,7 +41,11 @@ function TTsvd_cross(#={{{=#
     reqrank::Int64=10,
     kwargs...
     )::TTtensor
+    println(valence)
+    println(G([1, 2, 3, 4, 5]))
 
-    return TTtensor(teneva.cross( G, teneva.rand(valence, reqrank), e=1e-10, kwargs...))
+    m = 1000 # Nbr calls to target function
+    e = 1e-10 # Desired accuracy
+    return TTtensor(teneva.cross(G, teneva.rand(valence, reqrank), m, e, kwargs...))
 end#=}}}=#
 

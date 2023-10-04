@@ -12,13 +12,20 @@ using TensorToolbox
 using IterTools: product
 using Flatten
 using SplitApplyCombine: combinedims
-include("QOL.jl")
-include("TenevaWrappers.jl")
 
 export UnivariateApproximationScheme
 export chebfun
 export approximate_scalar
 export approximate_vector
+
+export TTsvd_incomplete
+export TTsvd_cross
+include("TenevaWrappers.jl")
+
+""" Partial application """
+function pa(f, a...; pos=1)#={{{=#
+    return (b...) -> f([b...][1:(pos - 1)]..., a..., [b...][(pos + length([a...]) - 1):end]...)
+end#=}}}=#
 
 struct UnivariateApproximationScheme
     sample_points::Vector{Float64}
@@ -145,83 +152,83 @@ function approximate_scalar(#={{{=#
     return g_approx
 end#=}}}=#
 
-function approximate_scalar(#={{{=#
-    m::Int64,
-    g::Function,
-    ::typeof(TTsvd_incomplete);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
-    kwargs...
-    )::Function
+# function approximate_scalar(#={{{=#
+#     m::Int64,
+#     g::Function,
+#     ::typeof(TTsvd_incomplete);
+#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     kwargs...
+#     )::Function
 
-    sample_points = univariate_scheme.sample_points
-    univariate_approximate = univariate_scheme.approximate
+#     sample_points = univariate_scheme.sample_points
+#     univariate_approximate = univariate_scheme.approximate
 
-    G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
-    valence = repeat([length(sample_points)], m)
-    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
-    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
+#     valence = repeat([length(sample_points)], m)
+#     G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
+#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
-    cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-    for i in 1:m
-        cs[i] = mapslices(
-            univariate_approximate,
-            Cs[i];
-            dims=2
-            )
-    end
+#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
+#     for i in 1:m
+#         cs[i] = mapslices(
+#             univariate_approximate,
+#             Cs[i];
+#             dims=2
+#             )
+#     end
 
-    function g_approx(
-        x::Vector{Float64}
-        )::Float64
-        @assert(length(x) == m)
+#     function g_approx(
+#         x::Vector{Float64}
+#         )::Float64
+#         @assert(length(x) == m)
     
-        return only(full(TTtensor(
-            [map(f -> f(t), c) for (c, t) in zip(cs, x)]
-            )))
-    end
+#         return only(full(TTtensor(
+#             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
+#             )))
+#     end
 
-    return g_approx
-end#=}}}=#
+#     return g_approx
+# end#=}}}=#
 
-function approximate_scalar(#={{{=#
-    m::Int64,
-    g::Function,
-    ::typeof(TTsvd_cross);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
-    kwargs...
-    )::Function
+# function approximate_scalar(#={{{=#
+#     m::Int64,
+#     g::Function,
+#     ::typeof(TTsvd_cross);
+#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     kwargs...
+#     )::Function
 
-    sample_points = univariate_scheme.sample_points
-    univariate_approximate = univariate_scheme.approximate
+#     sample_points = univariate_scheme.sample_points
+#     univariate_approximate = univariate_scheme.approximate
 
-    G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
-    G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
-    valence = repeat([length(sample_points)], m)
-    G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
-    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
+#     G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
+#     valence = repeat([length(sample_points)], m)
+#     G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
+#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
-    cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-    for i in 1:m
-        cs[i] = mapslices(
-            univariate_approximate,
-            Cs[i];
-            dims=2
-            )
-    end
+#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
+#     for i in 1:m
+#         cs[i] = mapslices(
+#             univariate_approximate,
+#             Cs[i];
+#             dims=2
+#             )
+#     end
 
-    function g_approx(
-        x::Vector{Float64}
-        )::Float64
-        @assert(length(x) == m)
+#     function g_approx(
+#         x::Vector{Float64}
+#         )::Float64
+#         @assert(length(x) == m)
     
-        # Evaluate chebfuns and contract
-        return only(full(TTtensor(
-            [map(f -> f(t), c) for (c, t) in zip(cs, x)]
-            )))
-    end
+#         # Evaluate chebfuns and contract
+#         return only(full(TTtensor(
+#             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
+#             )))
+#     end
 
-    return g_approx
-end#=}}}=#
+#     return g_approx
+# end#=}}}=#
 
 function approximate_scalar(#={{{=#
     m::Int64,
@@ -384,84 +391,84 @@ function approximate_vector(#={{{=#
     return g_approx
 end#=}}}=#
 
-function approximate_vector(#={{{=#
-    m::Int64,
-    n::Int64,
-    g::Function,
-    ::typeof(TTsvd_incomplete);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
-    kwargs...
-    )::Function
+# function approximate_vector(#={{{=#
+#     m::Int64,
+#     n::Int64,
+#     g::Function,
+#     ::typeof(TTsvd_incomplete);
+#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     kwargs...
+#     )::Function
 
-    sample_points = univariate_scheme.sample_points
-    univariate_approximate = univariate_scheme.approximate
+#     sample_points = univariate_scheme.sample_points
+#     univariate_approximate = univariate_scheme.approximate
 
-    G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1]]
-    valence = [n, repeat([length(sample_points)], m)...]
-    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
-    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1]]
+#     valence = [n, repeat([length(sample_points)], m)...]
+#     G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
+#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
-    cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-    for i in 1:m
-        cs[i] = mapslices(
-            univariate_approximate,
-            Cs[i + 1];
-            dims=2
-            )
-    end
+#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
+#     for i in 1:m
+#         cs[i] = mapslices(
+#             univariate_approximate,
+#             Cs[i + 1];
+#             dims=2
+#             )
+#     end
 
-    function g_approx(
-        x::Vector{Float64}
-        )::Vector{Float64}
-        @assert(length(x) == m)
+#     function g_approx(
+#         x::Vector{Float64}
+#         )::Vector{Float64}
+#         @assert(length(x) == m)
         
-        return full(TTtensor(
-            [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
-            ))
-    end
+#         return full(TTtensor(
+#             [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
+#             ))
+#     end
 
-    return g_approx
-end#=}}}=#
+#     return g_approx
+# end#=}}}=#
 
-function approximate_vector(#={{{=#
-    m::Int64,
-    n::Int64,
-    g::Function,
-    ::typeof(TTsvd_cross);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
-    kwargs...
-    )::Function
+# function approximate_vector(#={{{=#
+#     m::Int64,
+#     n::Int64,
+#     g::Function,
+#     ::typeof(TTsvd_cross);
+#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     kwargs...
+#     )::Function
 
-    sample_points = univariate_scheme.sample_points
-    univariate_approximate = univariate_scheme.approximate
+#     sample_points = univariate_scheme.sample_points
+#     univariate_approximate = univariate_scheme.approximate
 
-    G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1] + 1]
-    G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
-    valence = [n, repeat([length(sample_points)], m)...]
-    G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
-    Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
+#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1] + 1]
+#     G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
+#     valence = [n, repeat([length(sample_points)], m)...]
+#     G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
+#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
-    cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-    for i in 1:m
-        cs[i] = mapslices(
-            univariate_approximate,
-            Cs[i + 1];
-            dims=2
-            )
-    end
+#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
+#     for i in 1:m
+#         cs[i] = mapslices(
+#             univariate_approximate,
+#             Cs[i + 1];
+#             dims=2
+#             )
+#     end
 
-    function g_approx(
-        x::Vector{Float64}
-        )::Vector{Float64}
-        @assert(length(x) == m)
+#     function g_approx(
+#         x::Vector{Float64}
+#         )::Vector{Float64}
+#         @assert(length(x) == m)
         
-        return full(TTtensor(
-            [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
-            ))
-    end
+#         return full(TTtensor(
+#             [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
+#             ))
+#     end
 
-    return g_approx
-end#=}}}=#
+#     return g_approx
+# end#=}}}=#
 
 function approximate_vector(#={{{=#
     m::Int64,
