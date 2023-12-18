@@ -55,7 +55,7 @@ function approximate_scalar(#={{{=#
     return g_approx
 end#=}}}=#
 
-m=4
+m=7
 Ns=100:50:800
 
 # Griewank
@@ -103,8 +103,8 @@ p = plot(;
     yticks=([1e0, 1e-5, 1e-10, 1e-15]),
     legend=:topright,
     )
-plot!(p, Ns, bs; label="error bound")
-scatter!(p, Ns, es; label="measured error")
+# plot!(p, Ns, bs; label="error bound") Incomplete tensor decomposition => no error bounds
+scatter!(p, Ns, es; label="measured error", color=2)
 
 # # To save figure and data to file:
 # using CSV

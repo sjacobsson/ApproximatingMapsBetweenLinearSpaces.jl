@@ -52,7 +52,7 @@ Approximate the [Rastrigin function](https://en.wikipedia.org/wiki/Rastrigin_fun
 
 ## Example: Griewank function
 
-Approximate the [Griewank function](https://en.wikipedia.org/wiki/Griewank_function) of 4 variables.
+Approximate the [Griewank function](https://en.wikipedia.org/wiki/Griewank_function) of 7 variables.
 Since the Griewank function oscillates a lot, we have to sample it very finely.
 But sampling in that many points is too expensive, so we import `approximate_scalar` explicitly and extend it with an approximate tensor decomposition from [teneva](https://github.com/AndreiChertkov/teneva).
 
