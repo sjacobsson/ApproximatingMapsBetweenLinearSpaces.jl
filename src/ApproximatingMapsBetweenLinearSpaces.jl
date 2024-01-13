@@ -13,7 +13,7 @@ using Flatten
 using SplitApplyCombine: combinedims
 
 export UnivariateApproximationScheme
-export chebfun
+export chebyshev
 export approximate_scalar
 export approximate_vector
 
@@ -27,7 +27,7 @@ struct UnivariateApproximationScheme
     approximate::Function # :: Vector{Float} -> (Float -> Float)
 end
 
-function chebfun(nbr_nodes::Int64)::UnivariateApproximationScheme#={{{=#
+function chebyshev(nbr_nodes::Int64)::UnivariateApproximationScheme#={{{=#
     return UnivariateApproximationScheme(
         points(Chebyshev(), nbr_nodes),
         pa(Fun, Chebyshev()) ∘ pa(transform, Chebyshev())
@@ -39,7 +39,7 @@ end#=}}}=#
         m::Int64,
         g::Function; # :: [-1, 1]^m -> R
         decomposition_method=hosvd,
-        univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+        univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
         kwargs...
         )::Function
 
@@ -50,7 +50,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
     decomposition_method=sthosvd,
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -67,7 +67,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(hosvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -99,7 +99,7 @@ function approximate_scalar(#={{{=#
         )::Float64
         @assert(length(x) == m)
    
-        # Evaluate chebfuns and contract
+        # Evaluate polynomial and contract
         return only(full(ttensor(
             C,
             [map(f -> f(t), u) for (u, t) in zip(us, x)]
@@ -113,7 +113,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(sthosvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -145,7 +145,7 @@ function approximate_scalar(#={{{=#
         )::Float64
         @assert(length(x) == m)
    
-        # Evaluate chebfuns and contract
+        # Evaluate polynomial and contract
         return only(full(ttensor(
             C,
             [map(f -> f(t), u) for (u, t) in zip(us, x)]
@@ -159,7 +159,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(TTsvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -197,7 +197,7 @@ end#=}}}=#
 #     m::Int64,
 #     g::Function,
 #     ::typeof(TTsvd_incomplete);
-#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
 #     kwargs...
 #     )::Function
 
@@ -235,7 +235,7 @@ end#=}}}=#
 #     m::Int64,
 #     g::Function,
 #     ::typeof(TTsvd_cross);
-#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
 #     kwargs...
 #     )::Function
 
@@ -262,7 +262,7 @@ end#=}}}=#
 #         )::Float64
 #         @assert(length(x) == m)
     
-#         # Evaluate chebfuns and contract
+#         # Evaluate polynomial and contract
 #         return only(full(TTtensor(
 #             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
 #             )))
@@ -275,7 +275,7 @@ function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(cp_als);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -318,7 +318,7 @@ end#=}}}=#
         n::Int64,
         g::Function; # :: [-1, 1]^m -> R^n
         decomposition_method=hosvd,
-        univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+        univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
         kwargs...
         )::Function
 
@@ -330,7 +330,7 @@ function approximate_vector(#={{{=#
     n::Int64,
     g::Function; # :: [-1, 1]^m -> R^n
     decomposition_method=sthosvd,
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -349,7 +349,7 @@ function approximate_vector(#={{{=#
     n::Int64,
     g::Function, # : [-1, 1]^m -> R^n
     ::typeof(hosvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -383,7 +383,7 @@ function approximate_vector(#={{{=#
         @assert(length(x) == m)
    
         
-        # Evaluate chebfuns and contract
+        # Evaluate polynmial and contract
         return full(ttensor(
             C,
             [Us[1], [map(f -> f(t), u) for (u, t) in zip(us, x)]...]
@@ -398,7 +398,7 @@ function approximate_vector(#={{{=#
     n::Int64,
     g::Function, # : [-1, 1]^m -> R^n
     ::typeof(sthosvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -432,7 +432,7 @@ function approximate_vector(#={{{=#
         @assert(length(x) == m)
    
         
-        # Evaluate chebfuns and contract
+        # Evaluate polynomial and contract
         return full(ttensor(
             C,
             [Us[1], [map(f -> f(t), u) for (u, t) in zip(us, x)]...]
@@ -447,7 +447,7 @@ function approximate_vector(#={{{=#
     n::Int64,
     g::Function,
     ::typeof(TTsvd);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
@@ -486,7 +486,7 @@ end#=}}}=#
 #     n::Int64,
 #     g::Function,
 #     ::typeof(TTsvd_incomplete);
-#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
 #     kwargs...
 #     )::Function
 
@@ -525,7 +525,7 @@ end#=}}}=#
 #     n::Int64,
 #     g::Function,
 #     ::typeof(TTsvd_cross);
-#     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
 #     kwargs...
 #     )::Function
 
@@ -565,7 +565,7 @@ function approximate_vector(#={{{=#
     n::Int64,
     g::Function,
     ::typeof(cp_als);
-    univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
     kwargs...
     )::Function
 
