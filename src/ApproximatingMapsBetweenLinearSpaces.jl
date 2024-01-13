@@ -44,7 +44,7 @@ end#=}}}=#
         )::Function
 
 Approximate a multivariate scalar-valued function using a tensorized `univariate_approximate`.
-Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
+Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
 """
 function approximate_scalar(#={{{=#
     m::Int64,
@@ -323,7 +323,7 @@ end#=}}}=#
         )::Function
 
 Approximate a multivariate vector-valued function using a tensorized `univariate_approximate`.
-Available tensor decomposition methods are `hosvd` (complete), `TTsvd` (complete), `TTsvd_incomplete` (incomplete), `TTsvd_cross` (incomplete), `cp_als` (incomplete?).
+Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
 """
 function approximate_vector(#={{{=#
     m::Int64,
