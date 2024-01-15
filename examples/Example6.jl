@@ -22,6 +22,7 @@ function approximate_scalar(#={{{=#
     g::Function,
     ::typeof(TTsvd_incomplete);
     univariate_scheme::UnivariateApproximationScheme=chebfun(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -30,7 +31,7 @@ function approximate_scalar(#={{{=#
 
     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
     valence = repeat([length(sample_points)], m)
-    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
+    G_decomposed::TTtensor = TTsvd_incomplete(G, valence; e=tolerance, kwargs...)
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
@@ -83,7 +84,7 @@ for (i, N) = enumerate(Ns)
     local ghat = approximate_scalar(
         m,
         g;
-        univariate_scheme=chebfun(N),
+        univariate_scheme=chebyshev(N),
         decomposition_method=TTsvd_incomplete,
         # eps_rel=1e-15
         )
@@ -106,8 +107,8 @@ p = plot(;
 # plot!(p, Ns, bs; label="error bound") Incomplete tensor decomposition => no error bounds
 scatter!(p, Ns, es; label="measured error", color=2)
 
-# # To save figure and data to file:
-# using CSV
-# using DataFrames: DataFrame
-# savefig("Example6.png")
-# CSV.write("Example6.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# To save figure and data to file:
+using CSV
+using DataFrames: DataFrame
+savefig("Example6.png")
+CSV.write("Example6.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))

@@ -6,7 +6,7 @@ using Plots; pyplot()
 m=4
 n1=40
 n2=60
-Ns=2:1:12
+Ns=2:1:14
 
 Random.seed!(420)
 A0 = normalize(rand(n1)) * normalize(rand(n2))'
@@ -121,8 +121,7 @@ for (i, N) = enumerate(Ns)
     local ghat = approximate_scalar(
         m,
         g;
-        univariate_scheme=chebfun(N),
-        eps_rel=1e-15
+        univariate_scheme=chebyshev(N),
         )
 
     # e = max(|g - ghat|)
@@ -140,7 +139,7 @@ p = plot(;
     yticks=([1e0, 1e-5, 1e-10, 1e-15]),
     legend=:topright,
     )
-plot!(p, Ns, bs; label="error bound")
+plot!(p, Ns[1:11], bs[1:11]; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
 # # To save figure and data to file:

@@ -3,8 +3,6 @@ module ApproximatingMapsBetweenLinearSpaces
 
 # TODO:
 #   Option to use BasisFunction
-#   Write tests.
-#   Consistent keywords for tensor decomposition tolerance
 
 using ApproxFun
 using TensorToolbox
@@ -38,19 +36,21 @@ end#=}}}=#
     function approximate_scalar(
         m::Int64,
         g::Function; # :: [-1, 1]^m -> R
-        decomposition_method=hosvd,
         univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+        decomposition_method=sthosvd,
+        tolerance=1e-12, # Tolerance when decomposing
         kwargs...
         )::Function
 
 Approximate a multivariate scalar-valued function using a tensorized `univariate_approximate`.
-Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
+Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `cp_als`.
 """
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function; # :: [-1, 1]^m -> R
     decomposition_method=sthosvd,
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12, # Tolerance when decomposing
     kwargs...
     )::Function
 
@@ -59,6 +59,7 @@ function approximate_scalar(#={{{=#
         g,
         decomposition_method;
         univariate_scheme=univariate_scheme,
+        tolerance=tolerance,
         kwargs...
         )
 end#=}}}=#
@@ -68,6 +69,7 @@ function approximate_scalar(#={{{=#
     g::Function,
     ::typeof(hosvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -80,7 +82,7 @@ function approximate_scalar(#={{{=#
     # G_ijk = C^abc U1_ai U2_bj U3_ck
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m} = g.(grid)
-    G_decomposed::ttensor = hosvd(G; kwargs...)
+    G_decomposed::ttensor = hosvd(G; eps_abs=tolerance, kwargs...)
     C::Array{Float64, m} = G_decomposed.cten
     Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
 
@@ -114,6 +116,7 @@ function approximate_scalar(#={{{=#
     g::Function,
     ::typeof(sthosvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -126,7 +129,7 @@ function approximate_scalar(#={{{=#
     # G_ijk = C^abc U1_ai U2_bj U3_ck
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m} = g.(grid)
-    G_decomposed::ttensor = sthosvd(G; kwargs...)
+    G_decomposed::ttensor = sthosvd(G; tol=tolerance, kwargs...)
     C::Array{Float64, m} = G_decomposed.cten
     Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
 
@@ -160,6 +163,7 @@ function approximate_scalar(#={{{=#
     g::Function,
     ::typeof(TTsvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -168,7 +172,7 @@ function approximate_scalar(#={{{=#
 
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m} = g.(grid)
-    G_decomposed::TTtensor = TTsvd(G; kwargs...)
+    G_decomposed::TTtensor = TTsvd(G; tol=tolerance, kwargs...)
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
@@ -193,89 +197,12 @@ function approximate_scalar(#={{{=#
     return g_approx
 end#=}}}=#
 
-# function approximate_scalar(#={{{=#
-#     m::Int64,
-#     g::Function,
-#     ::typeof(TTsvd_incomplete);
-#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-#     kwargs...
-#     )::Function
-
-#     sample_points = univariate_scheme.sample_points
-#     univariate_approximate = univariate_scheme.approximate
-
-#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
-#     valence = repeat([length(sample_points)], m)
-#     G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
-#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
-
-#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-#     for i in 1:m
-#         cs[i] = mapslices(
-#             univariate_approximate,
-#             Cs[i];
-#             dims=2
-#             )
-#     end
-
-#     function g_approx(
-#         x::Vector{Float64}
-#         )::Float64
-#         @assert(length(x) == m)
-    
-#         return only(full(TTtensor(
-#             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
-#             )))
-#     end
-
-#     return g_approx
-# end#=}}}=#
-
-# function approximate_scalar(#={{{=#
-#     m::Int64,
-#     g::Function,
-#     ::typeof(TTsvd_cross);
-#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-#     kwargs...
-#     )::Function
-
-#     sample_points = univariate_scheme.sample_points
-#     univariate_approximate = univariate_scheme.approximate
-
-#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I])
-#     G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
-#     valence = repeat([length(sample_points)], m)
-#     G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
-#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
-
-#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-#     for i in 1:m
-#         cs[i] = mapslices(
-#             univariate_approximate,
-#             Cs[i];
-#             dims=2
-#             )
-#     end
-
-#     function g_approx(
-#         x::Vector{Float64}
-#         )::Float64
-#         @assert(length(x) == m)
-    
-#         # Evaluate polynomial and contract
-#         return only(full(TTtensor(
-#             [map(f -> f(t), c) for (c, t) in zip(cs, x)]
-#             )))
-#     end
-
-#     return g_approx
-# end#=}}}=#
-
 function approximate_scalar(#={{{=#
     m::Int64,
     g::Function,
     ::typeof(cp_als);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -285,7 +212,7 @@ function approximate_scalar(#={{{=#
     resolution = length(sample_points)
     grid = [sample_points[collect(I)] for I in product(repeat([1:resolution], m)...)]
     G::Array{Float64, m} = g.(grid)
-    G_decomposed::ktensor = cp_als(G, 2 * resolution; tol=1e-10, kwargs...) # TODO: How to choose number of terms??
+    G_decomposed::ktensor = cp_als(G, 2 * resolution; tol=tolerance, kwargs...) # TODO: How to choose number of terms??
     lambdas::Vector{Float64} = G_decomposed.lambda
     Vs::Vector{Array{Float64, 2}} = G_decomposed.fmat
 
@@ -317,13 +244,14 @@ end#=}}}=#
         m::Int64,
         n::Int64,
         g::Function; # :: [-1, 1]^m -> R^n
-        decomposition_method=hosvd,
+        decomposition_method=tshosvd,
         univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+        tolerance=1e-12, # Tolerance when decomposing
         kwargs...
         )::Function
 
 Approximate a multivariate vector-valued function using a tensorized `univariate_approximate`.
-Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `TTsvd_incomplete`, `TTsvd_cross`, `cp_als`.
+Available tensor decomposition methods are `sthosvd`, `hosvd`, `TTsvd`, `cp_als`.
 """
 function approximate_vector(#={{{=#
     m::Int64,
@@ -331,6 +259,7 @@ function approximate_vector(#={{{=#
     g::Function; # :: [-1, 1]^m -> R^n
     decomposition_method=sthosvd,
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12, # Tolerance when decomposing
     kwargs...
     )::Function
 
@@ -340,6 +269,7 @@ function approximate_vector(#={{{=#
         g,
         decomposition_method;
         univariate_scheme=univariate_scheme,
+        tolerance=tolerance,
         kwargs...
         )
 end#=}}}=#
@@ -350,6 +280,7 @@ function approximate_vector(#={{{=#
     g::Function, # : [-1, 1]^m -> R^n
     ::typeof(hosvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -362,7 +293,7 @@ function approximate_vector(#={{{=#
     # G^l_ijk = C_d^abc U1_ia U2_jb U3_kc U4^l_d
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m + 1} = combinedims(g.(grid))
-    G_decomposed::ttensor = hosvd(G; kwargs...)
+    G_decomposed::ttensor = hosvd(G; eps_aps=tolerance, kwargs...)
 
     C::Array{Float64, m + 1} = G_decomposed.cten
     Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
@@ -399,6 +330,7 @@ function approximate_vector(#={{{=#
     g::Function, # : [-1, 1]^m -> R^n
     ::typeof(sthosvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -411,7 +343,7 @@ function approximate_vector(#={{{=#
     # G^l_ijk = C_d^abc U1_ia U2_jb U3_kc U4^l_d
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m + 1} = combinedims(g.(grid))
-    G_decomposed::ttensor = sthosvd(G; kwargs...)
+    G_decomposed::ttensor = sthosvd(G; tol=tolerance, kwargs...)
 
     C::Array{Float64, m + 1} = G_decomposed.cten
     Us::Vector{Array{Float64, 2}} = G_decomposed.fmat
@@ -448,6 +380,7 @@ function approximate_vector(#={{{=#
     g::Function,
     ::typeof(TTsvd);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -456,7 +389,7 @@ function approximate_vector(#={{{=#
 
     grid = [sample_points[collect(I)] for I in product(repeat([1:length(sample_points)], m)...)]
     G::Array{Float64, m + 1} = combinedims(g.(grid))
-    G_decomposed::TTtensor = TTsvd(G; kwargs...)
+    G_decomposed::TTtensor = TTsvd(G; tol=tolerance, kwargs...)
     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
 
     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
@@ -481,91 +414,13 @@ function approximate_vector(#={{{=#
     return g_approx
 end#=}}}=#
 
-# function approximate_vector(#={{{=#
-#     m::Int64,
-#     n::Int64,
-#     g::Function,
-#     ::typeof(TTsvd_incomplete);
-#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-#     kwargs...
-#     )::Function
-
-#     sample_points = univariate_scheme.sample_points
-#     univariate_approximate = univariate_scheme.approximate
-
-#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1]]
-#     valence = [n, repeat([length(sample_points)], m)...]
-#     G_decomposed::TTtensor = TTsvd_incomplete(G, valence; kwargs...)
-#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
-
-#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-#     for i in 1:m
-#         cs[i] = mapslices(
-#             univariate_approximate,
-#             Cs[i + 1];
-#             dims=2
-#             )
-#     end
-
-#     function g_approx(
-#         x::Vector{Float64}
-#         )::Vector{Float64}
-#         @assert(length(x) == m)
-        
-#         return full(TTtensor(
-#             [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
-#             ))
-#     end
-
-#     return g_approx
-# end#=}}}=#
-
-# function approximate_vector(#={{{=#
-#     m::Int64,
-#     n::Int64,
-#     g::Function,
-#     ::typeof(TTsvd_cross);
-#     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-#     kwargs...
-#     )::Function
-
-#     sample_points = univariate_scheme.sample_points
-#     univariate_approximate = univariate_scheme.approximate
-
-#     G(I::Vector{Int64})::Float64 = g([sample_points[i + 1] for i in I[2:end]])[I[1] + 1]
-#     G(Is::Matrix{Int64}) = [G(Is[i, :]) for i in 1:size(Is, 1)]
-#     valence = [n, repeat([length(sample_points)], m)...]
-#     G_decomposed::TTtensor = TTsvd_cross(G, valence; kwargs...)
-#     Cs::Vector{Array{Float64, 3}} = G_decomposed.cores
-
-#     cs::Vector{Array{Function, 3}} = Vector{Array{Function, 3}}(undef, m)
-#     for i in 1:m
-#         cs[i] = mapslices(
-#             univariate_approximate,
-#             Cs[i + 1];
-#             dims=2
-#             )
-#     end
-
-#     function g_approx(
-#         x::Vector{Float64}
-#         )::Vector{Float64}
-#         @assert(length(x) == m)
-        
-#         return full(TTtensor(
-#             [Cs[1], [map(f -> f(t), c) for (c, t) in zip(cs, x)]...]
-#             ))
-#     end
-
-#     return g_approx
-# end#=}}}=#
-
 function approximate_vector(#={{{=#
     m::Int64,
     n::Int64,
     g::Function,
     ::typeof(cp_als);
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
+    tolerance=1e-12,
     kwargs...
     )::Function
 
@@ -575,7 +430,7 @@ function approximate_vector(#={{{=#
     resolution = length(sample_points)
     grid = [sample_points[collect(I)] for I in product(repeat([1:resolution], m)...)]
     G::Array{Float64, m + 1} = combinedims(g.(grid))
-    G_decomposed::ktensor = cp_als(G, 2 * resolution; tol=1e-10, kwargs...) # TODO: How to choose number of terms??
+    G_decomposed::ktensor = cp_als(G, 2 * resolution; tol=tolerance, kwargs...) # TODO: How to choose number of terms??
     lambdas::Vector{Float64} = G_decomposed.lambda
     Vs::Vector{Array{Float64, 2}} = G_decomposed.fmat
 

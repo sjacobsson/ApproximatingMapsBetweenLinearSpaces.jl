@@ -15,7 +15,7 @@ b(N) = minimum([ # Bound for |g - ghat|
     let
         rho = beta + sqrt(beta^2 + 1)
         C = exp(m - 1 + beta^2)
-        4 * (Lambda(N) - 1) * C / ((rho - 1) * rho^N * (Lambda(N) - 1)) # TODO: reference the correct equation in the article
+        4 * (Lambda(N)^m - 1) * C / ((rho - 1) * rho^N * (Lambda(N) - 1)) # TODO: reference the correct equation in the article
     end
     for beta in 0.0:.5:10.0])
 
@@ -26,8 +26,7 @@ for (i, N) = enumerate(Ns)
     local ghat = approximate_scalar(
         m,
         g;
-        univariate_scheme=chebfun(N),
-        eps_rel=1e-15
+        univariate_scheme=chebyshev(N),
         )
 
     # e = max(|g - ghat|)
@@ -45,7 +44,7 @@ p = plot(;
     yticks=([1e0, 1e-5, 1e-10, 1e-15]),
     legend=:topright,
     )
-plot!(p, Ns[1:end - 1], bs[1:end - 1]; label="error bound")
+plot!(p, Ns[1:end - 2], bs[1:end - 2]; label="error bound")
 scatter!(p, Ns, es; label="measured error", color=2)
 
 # # To save figure and data to file:

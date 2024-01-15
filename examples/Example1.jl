@@ -14,9 +14,9 @@ b(N) = minimum([ # Bound for |g - ghat|
     let
         rho = beta + sqrt(beta^2 + 1)
         C = 1 / (1 - beta^2)
-        4 * (Lambda(N) - 1) * C / ((rho - 1) * rho^N * (Lambda(N) - 1)) # TODO: reference the correct equation in the article
+        4 * (Lambda(N)^m - 1) * C / ((rho - 1) * rho^N * (Lambda(N) - 1)) # TODO: reference the correct equation in the article
     end
-    for beta in 0.0:0.1:1.0])
+    for beta in 0.0:0.01:1.0])
 
 # Loop over nbr of interpolation points
 es = [NaN for _ in Ns]
@@ -25,8 +25,7 @@ for (i, N) = enumerate(Ns)
     local ghat = approximate_scalar(
         m,
         g;
-        univariate_scheme=chebfun(N),
-        eps_rel=1e-15
+        univariate_scheme=chebyshev(N),
         )
 
     # e = max(|g - ghat|)
@@ -47,8 +46,8 @@ p = plot(;
 plot!(p, Ns[1:end - 3], bs[1:end - 3]; label="error bound")
 scatter!(p, Ns, es; label="measured error")
 
-# To save figure and data to file:
-using CSV
-using DataFrames: DataFrame
-savefig("Example1.png")
-CSV.write("Example1.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
+# # To save figure and data to file:
+# using CSV
+# using DataFrames: DataFrame
+# savefig("Example1.png")
+# CSV.write("Example1.csv", DataFrame([:Ns => Ns, :es => es, :bs => bs]))
