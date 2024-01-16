@@ -1,4 +1,5 @@
 # Run Example 1 with different combinations of parameters
+# TODO: also test approximate_vector
 using ApproximatingMapsBetweenLinearSpaces
 using TensorToolbox: sthosvd, hosvd, TTsvd, cp_als
 
@@ -18,7 +19,7 @@ function main(;#={{{=#
     ms=2:4,
     Ns=10:20,
     nbr_tests=10,
-    decomposition_methods=[sthosvd, hosvd, TTsvd], # TODO: also test cp_als, right now it sometimes fails with SinSingularException
+    decomposition_methods=[sthosvd, hosvd, TTsvd], # TODO: also test cp_als, right now it sometimes fails with SingularException
     verbose=false,
     )
 
