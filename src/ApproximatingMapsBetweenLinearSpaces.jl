@@ -239,7 +239,7 @@ end#=}}}=#
         m::Int64,
         n::Int64,
         g::Function; # :: [-1, 1]^m -> R^n
-        decomposition_method=tshosvd,
+        decomposition_method=sthosvd,
         univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
         tolerance=1e-12, # Tolerance when decomposing
         kwargs...
