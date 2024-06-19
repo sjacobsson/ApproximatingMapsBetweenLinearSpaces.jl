@@ -1,0 +1,5 @@
+name = "ApproximatingMapsBetweenLinearSpaces"
+uuid = "0c731505-39fe-4182-a218-4183f572b1d8"
+repo = "git@gitlab.kuleuven.be:numa/software/ApproximatingMapsBetweenLinearSpaces.git"
+
+[packages]
