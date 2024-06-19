@@ -3,3 +3,4 @@ uuid = "b37c5231-2c3e-4ba8-9032-5e0b1dcf2fe4"
 repo = "git@gitlab.kuleuven.be:numa/software/ApproximatingMapsBetweenLinearSpaces.git"
 
 [packages]
+31d768e5-ae28-4338-b319-fc9871ebca58 = { name = "ApproximatingMapsBetweenLinearSpaces", path = "A/ApproximatingMapsBetweenLinearSpaces" }
