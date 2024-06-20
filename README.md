@@ -1,7 +1,7 @@
 # Approximating maps between linear spaces
 
 Approximate functions of type
-$$\reals^m \to \reals^n.$$
+$$\mathbb{R}^m \to \mathbb{R}^n.$$
 
 This package exists mostly so that I can use it in `ManiFactor.jl`.
 
