@@ -38,7 +38,7 @@ end#=}}}=#
         g::Function; # :: [-1, 1]^m -> R
         univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
         decomposition_method=sthosvd,
-        tolerance=1e-12, # Tolerance when decomposing
+        tolerance=1e-12, # Tolerance when decomposing G
         kwargs...
         )::Function
 
@@ -50,7 +50,7 @@ function approximate_scalar(#={{{=#
     g::Function; # :: [-1, 1]^m -> R
     decomposition_method=sthosvd,
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-    tolerance=1e-12, # Tolerance when decomposing
+    tolerance=1e-12, # Tolerance when decomposing G
     kwargs...
     )::Function
 
@@ -241,7 +241,7 @@ end#=}}}=#
         g::Function; # :: [-1, 1]^m -> R^n
         decomposition_method=sthosvd,
         univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-        tolerance=1e-12, # Tolerance when decomposing
+        tolerance=1e-12, # Tolerance when decomposing G
         kwargs...
         )::Function
 
@@ -254,7 +254,7 @@ function approximate_vector(#={{{=#
     g::Function; # :: [-1, 1]^m -> R^n
     decomposition_method=sthosvd,
     univariate_scheme::UnivariateApproximationScheme=chebyshev(20),
-    tolerance=1e-12, # Tolerance when decomposing
+    tolerance=1e-12, # Tolerance when decomposing G
     kwargs...
     )::Function
 
